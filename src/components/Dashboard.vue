@@ -165,7 +165,8 @@ const fetchLatest = async () => {
       latestData.value = {
         temp: parseFloat(res.data.temperatura).toFixed(1),
         hum: parseFloat(res.data.humedad).toFixed(1),
-        date: new Date(res.data.timestamp).toLocaleString()
+        date: new Date(res.data.timestamp).toLocaleString(),
+        rawTimestamp: res.data.timestamp
       }
     }
   } catch (err) {
@@ -173,6 +174,15 @@ const fetchLatest = async () => {
     console.error('Error fetching latest reading:', err)
   }
 }
+
+// Indicator status (Online if last reading was within the last 3 minutes)
+const isEspOnline = computed(() => {
+  if (!latestData.value.rawTimestamp) return false;
+  const lastUpdate = new Date(latestData.value.rawTimestamp).getTime();
+  const now = new Date().getTime();
+  const diffMs = now - lastUpdate;
+  return diffMs <= 180000; // 3 minutes in ms
+});
 
 const fetchHistory = async (page = 1) => {
   try {
@@ -238,7 +248,18 @@ onMounted(() => {
           <h1 class="text-xl font-bold text-white m-0 tracking-wide">Incubadora ESP32</h1>
         </div>
         <div class="flex items-center gap-6">
-          <span class="text-pi-sky-100 text-sm font-medium">Hola, {{ user.nombre }}</span>
+          <!-- Indicador de conexión ESP32 -->
+          <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full" :title="'Última lectura: ' + latestData.date">
+            <span class="relative flex h-3 w-3">
+              <span v-if="isEspOnline" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3" :class="isEspOnline ? 'bg-green-500' : 'bg-red-500'"></span>
+            </span>
+            <span class="text-sm font-semibold" :class="isEspOnline ? 'text-green-300' : 'text-red-300'">
+              {{ isEspOnline ? 'En línea' : 'Desconectado' }}
+            </span>
+          </div>
+
+          <span class="text-pi-sky-100 text-sm font-medium hidden sm:inline">Hola, {{ user.nombre }}</span>
           <router-link v-if="user.role === 'ADMIN'" to="/admin/users" class="text-pi-sky-400 hover:text-white transition-colors text-sm font-medium">Panel Admin</router-link>
           <button @click="logout" class="border border-pi-sky-400 text-pi-sky-400 hover:bg-pi-sky-400 hover:text-pi-blue-900 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Salir</button>
         </div>
