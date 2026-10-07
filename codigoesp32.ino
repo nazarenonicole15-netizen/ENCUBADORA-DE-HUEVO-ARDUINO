@@ -1,104 +1,257 @@
 #include <WiFi.h>
-#include "DHT.h"
-#include <HTTPClient.h>
+#include <WiFiManager.h>
+#include <ThingSpeak.h>
+#include <DHT.h>
 
-// ---------------------------------------------------------
-// CONFIGURACIÓN DE RED WI-FI
-// ---------------------------------------------------------
-const char* ssid = "TU_NOMBRE_DE_RED_WIFI";      // Reemplaza con el nombre de tu red
-const char* password = "TU_CONTRASEÑA_WIFI";     // Reemplaza con tu contraseña
-
-// ---------------------------------------------------------
-// CONFIGURACIÓN DE THINGSPEAK
-// ---------------------------------------------------------
-const char* server = "http://api.thingspeak.com/update";
-// IMPORTANTE: Reemplaza con tu WRITE API KEY de tu canal de ThingSpeak (Canal ID: 3442278)
-String apiKey = "TU_WRITE_API_KEY_AQUI"; 
-
-// ---------------------------------------------------------
-// CONFIGURACIÓN DEL SENSOR DHT
-// ---------------------------------------------------------
-#define DHTPIN 4          // Pin digital de la placa conectado al pin de datos del sensor DHT (Ej. GPIO 4)
-#define DHTTYPE DHT22     // Tipo de sensor: DHT11 o DHT22
+// =========================
+// DHT11
+// =========================
+#define DHTPIN 27
+#define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// ---------------------------------------------------------
-// TIEMPOS DE ENVÍO
-// ---------------------------------------------------------
-unsigned long previousMillis = 0;
-// ThingSpeak permite 1 petición cada 15 segundos en cuentas gratuitas.
-// Lo configuramos a 20 segundos (20000 ms) para asegurar estabilidad.
-const long interval = 20000; 
+// =========================
+// LEDS
+// =========================
+const int LED_ROJO = 25;
+const int LED_VERDE = 26;
 
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  
-  // Conexión a la red Wi-Fi
-  Serial.println();
-  Serial.print("Conectando a ");
-  Serial.println(ssid);
-  
-  WiFi.begin(ssid, password);
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+// =========================
+// THINGSPEAK
+// =========================
+unsigned long channelID = 3442278;
+const char* writeAPIKey = "EITBHFT7KA1M9P72";
+
+WiFiClient cliente;
+
+
+// =====================================================
+// PARPADEAR LED
+// =====================================================
+void parpadearLED(int pin, int veces, int tiempoEncendido, int tiempoApagado)
+{
+  for (int i = 0; i < veces; i++)
+  {
+    digitalWrite(pin, HIGH);
+    delay(tiempoEncendido);
+
+    digitalWrite(pin, LOW);
+    delay(tiempoApagado);
   }
-  
-  Serial.println("");
-  Serial.println("Wi-Fi conectado exitosamente!");
-  Serial.print("Dirección IP: ");
-  Serial.println(WiFi.localIP());
 }
 
-void loop() {
-  unsigned long currentMillis = millis();
 
-  // Ejecutar toma de lectura y envío cada 20 segundos
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
+// =====================================================
+// CONECTAR WIFI CON WIFIMANAGER
+// =====================================================
+void conectarWiFi()
+{
+  WiFiManager wifiManager;
 
-    // Lectura de humedad y temperatura
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
+  Serial.println();
+  Serial.println("=================================");
+  Serial.println("      WIFI MANAGER ESP32");
+  Serial.println("=================================");
 
-    // Comprobar si las lecturas fallaron y salir para intentar en el siguiente ciclo
-    if (isnan(h) || isnan(t)) {
-      Serial.println(F("¡Fallo al leer del sensor DHT! Revisa las conexiones."));
-      return;
+  // Nombre del punto de acceso que creará el ESP32
+  // si no puede conectarse a una red conocida.
+  //
+  // El segundo parámetro es la contraseña del AP.
+  // Debe tener al menos 8 caracteres.
+  //
+  // Ejemplo:
+  // AP: ESP32-DHT11
+  // CLAVE: 12345678
+
+  wifiManager.setConfigPortalTimeout(180);
+
+  if (!wifiManager.autoConnect("ESP32-DHT11", "12345678"))
+  {
+    Serial.println();
+    Serial.println("No se pudo conectar al WiFi.");
+    Serial.println("Reiniciando ESP32...");
+
+    delay(3000);
+    ESP.restart();
+  }
+
+  Serial.println();
+  Serial.println("=================================");
+  Serial.println("     WIFI CONECTADO");
+  Serial.println("=================================");
+
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  Serial.print("Direccion IP: ");
+  Serial.println(WiFi.localIP());
+
+  Serial.print("RSSI: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+
+  Serial.println("=================================");
+}
+
+
+// =====================================================
+// SETUP
+// =====================================================
+void setup()
+{
+  Serial.begin(115200);
+  delay(1500);
+
+  // =========================
+  // CONFIGURAR LEDS
+  // =========================
+  pinMode(LED_ROJO, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+
+  digitalWrite(LED_ROJO, LOW);
+  digitalWrite(LED_VERDE, LOW);
+
+  // =========================
+  // INICIAR DHT11
+  // =========================
+  dht.begin();
+
+  // =========================
+  // CONECTAR WIFI
+  // =========================
+  conectarWiFi();
+
+  // =========================
+  // INICIAR THINGSPEAK
+  // =========================
+  ThingSpeak.begin(cliente);
+
+  Serial.println("ThingSpeak iniciado.");
+  Serial.println();
+}
+
+
+// =====================================================
+// LOOP
+// =====================================================
+void loop()
+{
+  // ===================================================
+  // DOS PARPADEOS ROJOS
+  // Indican que se realizará una lectura
+  // ===================================================
+  parpadearLED(LED_ROJO, 2, 250, 200);
+
+
+  // ===================================================
+  // LEER DHT11
+  // ===================================================
+  float temperatura = dht.readTemperature();
+  float humedad = dht.readHumidity();
+
+
+  // ===================================================
+  // VERIFICAR SENSOR
+  // ===================================================
+  if (isnan(temperatura) || isnan(humedad))
+  {
+    Serial.println("Error al leer el sensor DHT11");
+
+    // Cuatro parpadeos rojos
+    parpadearLED(LED_ROJO, 4, 200, 200);
+
+    delay(2000);
+
+    return;
+  }
+
+
+  // ===================================================
+  // MOSTRAR DATOS
+  // ===================================================
+  Serial.print("Temperatura: ");
+  Serial.print(temperatura, 1);
+  Serial.println(" C");
+
+  Serial.print("Humedad: ");
+  Serial.print(humedad, 1);
+  Serial.println(" %");
+
+
+  // ===================================================
+  // VERIFICAR WIFI
+  // ===================================================
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println();
+    Serial.println("WiFi desconectado.");
+    Serial.println("Intentando reconectar...");
+
+    WiFi.reconnect();
+
+    unsigned long tiempoInicio = millis();
+
+    while (WiFi.status() != WL_CONNECTED &&
+           millis() - tiempoInicio < 10000)
+    {
+      delay(500);
+      Serial.print(".");
     }
 
-    Serial.print(F("Humedad: "));
-    Serial.print(h);
-    Serial.print(F("%  Temperatura: "));
-    Serial.print(t);
-    Serial.println(F("°C "));
+    Serial.println();
 
-    // Asegurarse de que el Wi-Fi siga conectado antes de hacer la petición
-    if(WiFi.status() == WL_CONNECTED){
-      HTTPClient http;
-      
-      // Construir la URL con la API Key y los campos correspondientes a ThingSpeak
-      // field1 = Temperatura, field2 = Humedad (tal como espera el backend)
-      String url = String(server) + "?api_key=" + apiKey + "&field1=" + String(t) + "&field2=" + String(h);
-      
-      http.begin(url);
-      int httpResponseCode = http.GET();
-      
-      if (httpResponseCode > 0) {
-        Serial.print("Datos enviados a ThingSpeak con éxito. Código HTTP: ");
-        Serial.println(httpResponseCode);
-      } else {
-        Serial.print("Error al enviar datos. Código de error HTTP: ");
-        Serial.println(httpResponseCode);
-      }
-      http.end(); // Liberar recursos
-    } else {
-      Serial.println("Desconectado de la red Wi-Fi");
-      // Intentar reconectar si se pierde la conexión
-      WiFi.reconnect();
+    // Si sigue sin conexión
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      Serial.println("No se pudo reconectar.");
+
+      Serial.println("Iniciando WiFiManager...");
+
+      conectarWiFi();
     }
   }
+
+
+  // ===================================================
+  // ENVIAR DATOS A THINGSPEAK
+  // ===================================================
+  ThingSpeak.setField(1, temperatura);
+  ThingSpeak.setField(2, humedad);
+
+  int respuesta = ThingSpeak.writeFields(
+    channelID,
+    writeAPIKey
+  );
+
+
+  // ===================================================
+  // VERIFICAR ENVÍO
+  // ===================================================
+  if (respuesta == 200)
+  {
+    Serial.println("Datos enviados correctamente a ThingSpeak");
+
+    // LED verde durante 2 segundos
+    digitalWrite(LED_VERDE, HIGH);
+    delay(2000);
+    digitalWrite(LED_VERDE, LOW);
+  }
+  else
+  {
+    Serial.print("Error al enviar. Codigo: ");
+    Serial.println(respuesta);
+
+    // Cinco parpadeos rojos rápidos
+    parpadearLED(LED_ROJO, 5, 100, 100);
+  }
+
+
+  Serial.println("-----------------------------");
+
+
+  // ===================================================
+  // ESPERAR 20 SEGUNDOS
+  // ===================================================
+  delay(20000);
 }
