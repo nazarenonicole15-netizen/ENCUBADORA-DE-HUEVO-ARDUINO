@@ -1,36 +1,64 @@
-# Estado del proyecto
+# Estado del Proyecto — Incubadora de Huevos con ESP32
 
-**Fecha de evaluación:** 14 de septiembre de 2026  
-**Estado general:** prototipo funcional de monitoreo; no listo para producción.
+**Última actualización:** 6 de octubre de 2026  
+**Estado general:** Prototipo funcional — sistema completo de monitoreo con UI/UX modernizada.
 
-## Funcionalidades observadas
+---
 
-| Área | Estado | Evidencia |
-| --- | --- | --- |
-| Inicio de sesión con JWT | Implementado | `backend/index.js`, `Login.vue`. |
-| Roles ADMIN / CLIENTE | Implementado | Middleware de API y guardia de Vue Router. |
-| Gestión de usuarios | Implementado parcialmente | Crear, listar y eliminar; no editar/desactivar ni auditoría. |
-| Lectura de ThingSpeak | Implementado | Worker al inicio y cada 60 segundos. |
-| Historial y gráficas | Implementado | API paginada, tabla y Chart.js. |
-| Alertas de rango | Implementado en navegador | Visual y sonora; sin notificación remota ni registro de alerta. |
-| Ciclo de incubación | Implementado parcialmente | Fecha/ave globales y alerta para gallina en días 18–21. |
-| Guías por ave | Implementado como contenido UI | Gallina, codorniz, ganso, pavo y pato. |
-| Firmware Arduino/ESP32 | No presente | No hay sketch, plataforma ni contrato de dispositivo en el árbol. |
-| Pruebas automatizadas | No presentes | `backend/package.json` contiene un script de prueba marcador. |
-| CI/CD y Git remoto | No presente | El directorio no es aún un repositorio Git. |
+## ✅ Funcionalidades Implementadas
 
-## Riesgos y brechas prioritarias
+| Área | Estado | Detalle |
+|------|--------|---------|
+| 🔐 Login con JWT | ✅ Completo | `backend/index.js`, `Login.vue`. Tokens con expiración 24h. |
+| 👥 Roles ADMIN / CLIENTE | ✅ Completo | Middleware en API y guardias de Vue Router. |
+| 👤 Crear usuario | ✅ Completo | Formulario con validación y hash bcrypt. |
+| ✏️ Editar usuario | ✅ Completo | Modal con nombre, email, rol y contraseña opcional. `PUT /api/users/:id`. |
+| 🗑️ Eliminar usuario | ✅ Completo | Con protección para el usuario ID=1. |
+| 📡 Indicador ESP32 Online/Offline | ✅ Completo | Punto verde animado en navbar; se basa en antigüedad de la última lectura (≤3 min = online). |
+| 📥 Sincronización ThingSpeak | ✅ Completo | Worker Node.js cada 60s. Canal `3442278`. |
+| 🌡️ Lectura en vivo (Temp/Humedad) | ✅ Completo | Polling del frontend cada 60s. |
+| 📈 Gráficas históricas | ✅ Completo | Chart.js, líneas de temperatura y humedad. |
+| 📋 Tabla paginada | ✅ Completo | API paginada (`?page&limit`), 20 registros por página. |
+| 🚨 Alarmas de rango | ✅ Completo | Visual (ring rojo animado) + sonora (audio loop). Botón silenciar. |
+| 🐔 Guías de incubación | ✅ Completo | Gallina (21d tabla diaria), Codorniz (17d), Ganso (30d), Pavo (28d), Pato (28d). |
+| 🔄 Control de ciclo | ✅ Completo | Iniciar/Detener por tipo de ave. Contador de días en Dashboard. |
+| ⚙️ Config. de umbrales | ✅ Completo | Temp min/max, Humedad min/max desde panel Admin. |
+| 🎨 UI/UX Moderna | ✅ Completo | Tailwind CSS, paleta institucional azul-celeste, cards, modales con backdrop-blur. |
+| 📄 Código ESP32 (WiFiManager) | ✅ Completo | `codigoesp32.ino` con DHT11, LEDs indicadores, WiFiManager y ThingSpeak. |
+
+---
+
+## ⚠️ Brechas y Mejoras Pendientes
 
 | Prioridad | Hallazgo | Impacto | Acción recomendada |
-| --- | --- | --- | --- |
-| Crítica | Secreto JWT, clave ThingSpeak y configuración MySQL están codificados. | Acceso indebido y fuga de datos. | Mover a `.env`, rotar claves y añadir validación de entorno. |
-| Alta | El canal permite CORS abierto y API/DB usan valores locales fijos. | Despliegue inseguro o frágil. | Restringir orígenes y parametrizar URLs/conexión. |
-| Alta | No hay pruebas ni pipeline. | Regresiones al modificar autenticación o datos. | Añadir pruebas de API, componente y CI. |
-| Alta | No se muestra antigüedad ni salud de telemetría. | Decisiones basadas en datos desactualizados. | Publicar estado de sincronización y alarma por staleness. |
-| Media | Configuración y ciclo son globales. | No permite varias incubadoras o lotes. | Modelar incubadora, lote, ciclo y eventos. |
-| Media | Sin validación de límites ni límites de paginación. | Rango incoherente o carga excesiva en base de datos. | Validar DTOs y acotar `limit`. |
-| Media | La API no ofrece control de actuadores. | El producto solo monitorea; no automatiza el ambiente. | Definir explícitamente alcance o integrar comandos de dispositivo. |
+|-----------|----------|---------|-------------------|
+| Alta | Secreto JWT y claves ThingSpeak están en el código fuente. | Riesgo de exposición. | Mover a archivo `.env` y agregar a `.gitignore`. |
+| Alta | CORS abierto (`app.use(cors())`). | Cualquier origen puede llamar la API. | Restringir a `http://localhost:8080` en producción. |
+| Media | Sin pruebas automatizadas. | Regresiones al modificar el código. | Añadir pruebas con Jest/Vitest. |
+| Media | No hay registros de auditoría de cambios. | No hay trazabilidad de ediciones de usuarios. | Añadir tabla `audit_log` en MySQL. |
+| Media | Configuración de ciclo es global (1 incubadora). | No permite múltiples incubadoras. | Modelar entidades `Incubadora` y `Ciclo`. |
+| Baja | Sin notificación remota de alertas. | Las alertas solo son visibles en el navegador abierto. | Integrar email o push notification. |
 
-## Próximo hito recomendado
+---
 
-Completar el Sprint 0 antes de ampliar funciones: eliminar secretos del código, documentar instalación, dejar migraciones repetibles e introducir pruebas de autenticación/lecturas. Después, priorizar salud de telemetría, pues es la condición para confiar en todo el dashboard.
+## 🏁 Hitos Completados
+
+- [x] Arquitectura cliente-servidor funcional (Vue 3 + Node.js + MySQL)
+- [x] Integración con ThingSpeak (sincronización automática)
+- [x] Sistema de autenticación y autorización por roles
+- [x] CRUD completo de usuarios (con edición en modal)
+- [x] Dashboard en tiempo real con alertas visuales y sonoras
+- [x] Guías de incubación por tipo de ave con tabla diaria
+- [x] Control de ciclo de incubación
+- [x] Indicador de conexión del ESP32 en tiempo real
+- [x] Código fuente del firmware ESP32 con WiFiManager
+- [x] Diseño UI/UX moderno con Tailwind CSS
+- [x] Repositorio en GitHub con commits organizados
+
+---
+
+## 🎯 Próximos Pasos Recomendados
+
+1. **Variables de entorno:** Crear `.env` con `JWT_SECRET`, `THINGSPEAK_API_KEY`, credenciales MySQL.
+2. **Pruebas automatizadas:** Cubrir endpoints de autenticación y lecturas con Jest.
+3. **Despliegue en producción:** Configurar un servidor Linux con Nginx + PM2.
