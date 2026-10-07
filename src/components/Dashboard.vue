@@ -227,160 +227,132 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="dashboard">
-    <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <h1>Incubadora ESP32</h1>
+  <div class="min-h-screen bg-pi-gray-100 font-sans text-pi-gray-700">
+    <!-- Navbar -->
+    <header class="bg-pi-blue-900 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <svg class="w-8 h-8 text-pi-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+          </svg>
+          <h1 class="text-xl font-bold text-white m-0 tracking-wide">Incubadora ESP32</h1>
         </div>
-        <div class="nav-right">
-          <span class="user-name">Hola, {{ user.nombre }}</span>
-          <router-link v-if="user.role === 'ADMIN'" to="/admin/users" class="nav-link">Panel Admin</router-link>
-          <button @click="logout" class="btn-outline">Salir</button>
+        <div class="flex items-center gap-6">
+          <span class="text-pi-sky-100 text-sm font-medium">Hola, {{ user.nombre }}</span>
+          <router-link v-if="user.role === 'ADMIN'" to="/admin/users" class="text-pi-sky-400 hover:text-white transition-colors text-sm font-medium">Panel Admin</router-link>
+          <button @click="logout" class="border border-pi-sky-400 text-pi-sky-400 hover:bg-pi-sky-400 hover:text-pi-blue-900 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Salir</button>
         </div>
       </div>
     </header>
 
-    <main class="main-content">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Contador de Ciclo -->
-      <div v-if="incubationDay" class="cycle-banner mb-4">
-        <h2>Incubación en Progreso: <strong>{{ settings.bird_type.toUpperCase() }}</strong></h2>
-        <p class="day-counter">Día {{ incubationDay }}</p>
+      <div v-if="incubationDay" class="bg-pi-white rounded-xl shadow-sm border border-pi-sky-100 p-6 mb-8 text-center flex flex-col items-center">
+        <h2 class="text-lg font-semibold text-pi-blue-900 mb-2">Incubación en Progreso: <span class="uppercase">{{ settings.bird_type }}</span></h2>
+        <div class="bg-pi-sky-100 text-pi-blue-700 px-6 py-2 rounded-full">
+          <p class="text-3xl font-extrabold m-0">Día {{ incubationDay }}</p>
+        </div>
       </div>
 
       <!-- Modal de Alerta Multimedia -->
-      <div v-if="showAlert" class="modal-overlay">
-        <div class="modal-content alarm-modal">
-          <h2>🔔 Alerta de Incubación</h2>
-          <p class="alert-text">{{ alertMessage }}</p>
-          <img v-if="alertImage" :src="alertImage" alt="Estado del embrión" class="embryo-img" />
-          <button @click="closeAlert" class="btn-primary mt-4">Entendido</button>
+      <div v-if="showAlert" class="fixed inset-0 bg-pi-blue-900/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-lg w-full text-center shadow-2xl border-t-4 border-pi-warning">
+          <div class="flex justify-center mb-4">
+            <span class="bg-pi-warning/20 text-pi-warning p-3 rounded-full">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </span>
+          </div>
+          <h2 class="text-2xl font-bold text-pi-gray-700 mb-4">Alerta de Incubación</h2>
+          <p class="text-base text-pi-gray-700 mb-6">{{ alertMessage }}</p>
+          <img v-if="alertImage" :src="alertImage" alt="Estado del embrión" class="w-full max-h-64 object-contain rounded-lg mb-6 border border-gray-100" />
+          <button @click="closeAlert" class="bg-pi-blue-700 hover:bg-pi-blue-900 text-white font-medium py-3 px-8 rounded-lg transition-colors w-full">Entendido</button>
         </div>
       </div>
 
       <!-- Alarmas Visuales y Sonoras de Rango -->
-      <div v-if="tempError || humError" class="alert-banner">
-        <span>⚠️ ATENCIÓN: Parámetros fuera del rango ideal de incubación</span>
-        <button @click="toggleMute" class="btn-mute">
-          {{ isMuted ? '🔇 Silenciar Activado' : '🔊 Silenciar Alarma' }}
+      <div v-if="tempError || humError" class="bg-red-50 border-l-4 border-pi-danger p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center mb-8 shadow-sm">
+        <div class="flex items-center gap-3 mb-4 sm:mb-0">
+          <svg class="w-6 h-6 text-pi-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span class="font-semibold text-pi-danger">Parámetros fuera del rango ideal</span>
+        </div>
+        <button @click="toggleMute" class="bg-white border border-red-200 text-pi-danger hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+          {{ isMuted ? '🔇 Silenciado' : '🔊 Silenciar Alarma' }}
         </button>
       </div>
 
-      <div class="grid">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <!-- Cards -->
-        <div class="metric-card temp-card" :class="{ 'alarm-pulse': tempError }">
-          <div class="card-header">
-            <h3>Temperatura</h3>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col relative overflow-hidden" :class="{ 'ring-2 ring-pi-danger animate-pulse': tempError }">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-base font-semibold text-pi-gray-700 m-0">Temperatura</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium" :class="tempError ? 'bg-red-100 text-pi-danger' : 'bg-pi-success/10 text-pi-success'">
+              {{ tempError ? 'Crítico' : 'Normal' }}
+            </span>
           </div>
-          <div class="card-value" :class="{ 'text-danger': tempError }">
-            <span class="value">{{ latestData.temp }}</span>
-            <span class="unit">°C</span>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-4xl font-bold tracking-tight" :class="tempError ? 'text-pi-danger' : 'text-pi-blue-900'">{{ latestData.temp }}</span>
+            <span class="text-xl font-medium text-gray-500">°C</span>
           </div>
-          <div class="range-info">Rango ideal: {{ settings.temp_min }} - {{ settings.temp_max }} °C</div>
+          <div class="mt-4 text-sm text-gray-500 border-t border-gray-50 pt-4">Rango ideal: {{ settings.temp_min }} - {{ settings.temp_max }} °C</div>
         </div>
 
-        <div class="metric-card hum-card" :class="{ 'alarm-pulse': humError }">
-          <div class="card-header">
-            <h3>Humedad</h3>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col relative overflow-hidden" :class="{ 'ring-2 ring-pi-danger animate-pulse': humError }">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-base font-semibold text-pi-gray-700 m-0">Humedad</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium" :class="humError ? 'bg-red-100 text-pi-danger' : 'bg-pi-success/10 text-pi-success'">
+              {{ humError ? 'Crítico' : 'Normal' }}
+            </span>
           </div>
-          <div class="card-value" :class="{ 'text-danger': humError }">
-            <span class="value">{{ latestData.hum }}</span>
-            <span class="unit">%</span>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span class="text-4xl font-bold tracking-tight" :class="humError ? 'text-pi-danger' : 'text-pi-blue-900'">{{ latestData.hum }}</span>
+            <span class="text-xl font-medium text-gray-500">%</span>
           </div>
-          <div class="range-info">Rango ideal: {{ settings.hum_min }}% - {{ settings.hum_max }}%</div>
+          <div class="mt-4 text-sm text-gray-500 border-t border-gray-50 pt-4">Rango ideal: {{ settings.hum_min }}% - {{ settings.hum_max }}%</div>
         </div>
 
         <!-- Charts -->
-        <div class="chart-container">
-          <div class="chart-wrapper">
-            <Line v-if="tempChartData.labels.length" :data="tempChartData" :options="chartOptions" />
-          </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-72">
+          <Line v-if="tempChartData.labels.length" :data="tempChartData" :options="chartOptions" />
         </div>
 
-        <div class="chart-container">
-          <div class="chart-wrapper">
-            <Line v-if="humChartData.labels.length" :data="humChartData" :options="chartOptions" />
-          </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-72">
+          <Line v-if="humChartData.labels.length" :data="humChartData" :options="chartOptions" />
         </div>
       </div>
 
       <!-- Tabla Histórica -->
-      <div class="table-card mt-4">
-        <h3>Histórico (Tomado cada minuto)</h3>
-        <table class="data-table mt-2">
-          <thead>
-            <tr>
-              <th>Fecha y Hora</th>
-              <th>Temperatura (°C)</th>
-              <th>Humedad (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in historyData" :key="row.id">
-              <td>{{ new Date(row.timestamp).toLocaleString() }}</td>
-              <td>{{ row.temperatura }}</td>
-              <td>{{ row.humedad }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pagination mt-4">
-          <button @click="fetchHistory(currentPage - 1)" :disabled="currentPage === 1">Anterior</button>
-          <span>Página {{ currentPage }} de {{ totalPages }}</span>
-          <button @click="fetchHistory(currentPage + 1)" :disabled="currentPage === totalPages">Siguiente</button>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-0 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <h3 class="text-lg font-semibold text-pi-blue-900 m-0">Historial de Lecturas</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
+              <tr>
+                <th scope="col" class="px-6 py-4 font-medium">Fecha y Hora</th>
+                <th scope="col" class="px-6 py-4 font-medium">Temperatura (°C)</th>
+                <th scope="col" class="px-6 py-4 font-medium">Humedad (%)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <tr v-for="row in historyData" :key="row.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-pi-gray-700">{{ new Date(row.timestamp).toLocaleString() }}</td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium" :class="row.temperatura < settings.temp_min || row.temperatura > settings.temp_max ? 'text-pi-danger' : 'text-pi-blue-700'">{{ row.temperatura }}</td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium" :class="row.humedad < settings.hum_min || row.humedad > settings.hum_max ? 'text-pi-danger' : 'text-pi-blue-700'">{{ row.humedad }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+          <button @click="fetchHistory(currentPage - 1)" :disabled="currentPage === 1" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Anterior</button>
+          <span class="text-sm text-gray-500 font-medium">Página {{ currentPage }} de {{ totalPages }}</span>
+          <button @click="fetchHistory(currentPage + 1)" :disabled="currentPage === totalPages" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Siguiente</button>
         </div>
       </div>
     </main>
   </div>
 </template>
-
-<style scoped>
-.dashboard { min-height: 100vh; background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-.header { background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.header-content { max-width: 1280px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-.logo h1 { font-size: 1.25rem; font-weight: 600; margin: 0; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.nav-right { display: flex; gap: 1rem; align-items: center; }
-.user-name { color: #94a3b8; }
-.nav-link { color: #818cf8; text-decoration: none; font-size: 0.875rem; }
-.btn-outline { background: transparent; border: 1px solid #475569; color: white; padding: 0.25rem 0.75rem; border-radius: 0.5rem; cursor: pointer; }
-
-.main-content { max-width: 1280px; margin: 0 auto; padding: 2rem; }
-.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-.metric-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; }
-.card-value .value { font-size: 3rem; font-weight: 700; }
-.range-info { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
-.chart-container { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1rem; grid-column: span 1; height: 250px;}
-
-.alert-banner { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 1rem; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-weight: 600; }
-.btn-mute { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem; }
-.btn-mute:hover { background: rgba(0,0,0,0.5); }
-.alarm-pulse { animation: alarmPulse 1.5s infinite; border-color: #ef4444; }
-.text-danger { color: #ef4444 !important; }
-
-@keyframes alarmPulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-.table-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; }
-.pagination button { background: #334155; border: none; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; }
-.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-4 { margin-top: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-
-.cycle-banner { background: linear-gradient(to right, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(168, 85, 247, 0.5); padding: 1.5rem; border-radius: 1rem; text-align: center; }
-.cycle-banner h2 { margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #e2e8f0; }
-.day-counter { font-size: 2.5rem; font-weight: 800; color: #c084fc; margin: 0; }
-
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-.modal-content { background: #1e293b; padding: 2.5rem; border-radius: 1rem; max-width: 500px; text-align: center; border: 1px solid #818cf8; box-shadow: 0 0 30px rgba(129, 140, 248, 0.3); }
-.modal-content h2 { color: #f8fafc; margin-top: 0; }
-.alert-text { font-size: 1.1rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 1.5rem; }
-.embryo-img { width: 100%; max-height: 300px; object-fit: contain; border-radius: 0.5rem; margin-bottom: 1rem; background: white; }
-.btn-primary { background: #6366f1; color: white; border: none; padding: 0.75rem 2rem; border-radius: 0.5rem; font-size: 1rem; cursor: pointer; }
-.btn-primary:hover { background: #4f46e5; }
-</style>

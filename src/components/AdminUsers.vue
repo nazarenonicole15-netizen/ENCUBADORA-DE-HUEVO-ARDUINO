@@ -135,325 +135,210 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="admin-container">
-    <header class="header">
-      <div class="header-content">
-        <h2>Panel de Administrador</h2>
+  <div class="min-h-screen bg-pi-gray-100 font-sans text-pi-gray-700">
+    <!-- Navbar -->
+    <header class="bg-pi-blue-900 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-white m-0 tracking-wide">Panel de Administrador</h2>
         <nav>
-          <router-link to="/" class="nav-link">Ir al Dashboard</router-link>
+          <router-link to="/" class="text-pi-sky-400 hover:text-white transition-colors text-sm font-medium">Volver al Dashboard</router-link>
         </nav>
       </div>
     </header>
 
-    <main class="main-content">
-      <div class="card">
-        <div class="card-header">
-          <h3>Gestión de Usuarios</h3>
-          <button @click="showForm = !showForm" class="btn-primary">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Gestión de Usuarios Card -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-pi-blue-900 m-0">Gestión de Usuarios</h3>
+          <button @click="showForm = !showForm" class="bg-pi-blue-700 hover:bg-pi-blue-900 text-white border-none py-2 px-4 rounded-lg text-sm font-medium transition-colors">
             {{ showForm ? 'Cancelar' : 'Nuevo Usuario' }}
           </button>
         </div>
 
-        <div v-if="showForm" class="form-container">
-          <form @submit.prevent="createUser">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Nombre</label>
-                <input v-model="newUser.nombre" required />
+        <div v-if="showForm" class="bg-pi-gray-100 p-6 rounded-xl border border-gray-200 mb-6">
+          <form @submit.prevent="createUser" class="flex flex-col gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Nombre</label>
+                <input v-model="newUser.nombre" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" v-model="newUser.email" required />
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Email</label>
+                <input type="email" v-model="newUser.email" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" v-model="newUser.password" required />
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Contraseña</label>
+                <input type="password" v-model="newUser.password" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Rol</label>
-                <select v-model="newUser.role">
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Rol</label>
+                <select v-model="newUser.role" class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all">
                   <option value="CLIENTE">Cliente</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>
             </div>
-            <div v-if="errorMsg" class="error-msg mt-2">{{ errorMsg }}</div>
-            <button type="submit" class="btn-primary mt-4">Guardar Usuario</button>
+            <div v-if="errorMsg" class="bg-red-100 text-pi-danger text-sm px-4 py-3 rounded-lg border border-red-200">{{ errorMsg }}</div>
+            <div>
+              <button type="submit" class="bg-pi-blue-700 hover:bg-pi-blue-900 text-white border-none py-2.5 px-6 rounded-lg text-sm font-medium transition-colors">Guardar Usuario</button>
+            </div>
           </form>
         </div>
 
-        <div v-if="loading" class="loading">Cargando usuarios...</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Rol</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.id">
-              <td>{{ user.id }}</td>
-              <td>{{ user.nombre }}</td>
-              <td>{{ user.email }}</td>
-              <td><span :class="'badge ' + user.role.toLowerCase()">{{ user.role }}</span></td>
-              <td>
-                <button @click="deleteUser(user.id)" class="btn-danger" :disabled="user.id === 1">Eliminar</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-if="loading" class="text-center py-8 text-gray-500 font-medium animate-pulse">Cargando usuarios...</div>
+        <div v-else class="overflow-x-auto border border-gray-100 rounded-xl">
+          <table class="w-full text-sm text-left">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th scope="col" class="px-6 py-4 font-medium">ID</th>
+                <th scope="col" class="px-6 py-4 font-medium">Nombre</th>
+                <th scope="col" class="px-6 py-4 font-medium">Email</th>
+                <th scope="col" class="px-6 py-4 font-medium">Rol</th>
+                <th scope="col" class="px-6 py-4 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-pi-gray-700">{{ user.id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium text-pi-blue-900">{{ user.nombre }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-pi-gray-700">{{ user.email }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-semibold" :class="user.role === 'ADMIN' ? 'bg-pi-blue-100 text-pi-blue-700' : 'bg-green-100 text-green-700'">{{ user.role }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <button @click="deleteUser(user.id)" :disabled="user.id === 1" class="bg-white border border-red-200 text-pi-danger hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">Eliminar</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="card mt-4">
-        <div class="card-header">
-          <h3>Guía de Referencia para Incubación</h3>
-          <div v-if="settings.start_date">
-            <span class="badge admin">Ciclo Activo: {{ settings.bird_type.toUpperCase() }}</span>
-            <button @click="stopCycle" class="btn-danger ml-2">Detener Ciclo</button>
+      <!-- Guía de Referencia y Ciclo Activo -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h3 class="text-lg font-semibold text-pi-blue-900 m-0">Guía de Referencia para Incubación</h3>
+          <div v-if="settings.start_date" class="flex items-center gap-3">
+            <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-pi-blue-100 text-pi-blue-900 border border-pi-blue-200">Ciclo Activo: {{ settings.bird_type.toUpperCase() }}</span>
+            <button @click="stopCycle" class="bg-white border border-red-200 text-pi-danger hover:bg-red-50 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm">Detener Ciclo</button>
           </div>
           <div v-else>
-            <span class="badge">Sin ciclo activo</span>
+            <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 border border-gray-200">Sin ciclo activo</span>
           </div>
         </div>
-        <div class="tabs">
+
+        <div class="flex gap-2 border-b border-gray-200 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           <button v-for="(bird, key) in birdData" :key="key" 
-                  :class="['tab-btn', { active: activeTab === key }]"
+                  :class="['whitespace-nowrap px-6 py-3 font-medium text-sm rounded-t-lg transition-colors', activeTab === key ? 'bg-pi-sky-100 text-pi-blue-700 border-b-2 border-pi-blue-700' : 'text-gray-500 hover:text-pi-gray-700 hover:bg-gray-50']"
                   @click="activeTab = key">
             {{ bird.name }}
           </button>
         </div>
-        <div class="tab-content" v-if="birdData[activeTab]">
-          <div class="info-grid mb-4">
-            <div class="info-box">
-              <h4>Días Totales</h4>
-              <p class="highlight">{{ birdData[activeTab].total }}</p>
+
+        <div v-if="birdData[activeTab]">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-pi-gray-100 p-6 rounded-xl border border-gray-200">
+              <h4 class="text-sm font-medium text-gray-500 mb-1">Días Totales</h4>
+              <p class="text-2xl font-bold text-pi-blue-900 m-0">{{ birdData[activeTab].total }}</p>
             </div>
-            <div class="info-box" v-if="!birdData[activeTab].schedule">
-              <h4>Temperatura Ideal</h4>
-              <p class="highlight temp">{{ birdData[activeTab].temp }}</p>
-              <span class="subtext">Constante durante todo el ciclo</span>
+            <div class="bg-pi-gray-100 p-6 rounded-xl border border-gray-200" v-if="!birdData[activeTab].schedule">
+              <h4 class="text-sm font-medium text-gray-500 mb-1">Temperatura Ideal</h4>
+              <p class="text-2xl font-bold text-orange-500 m-0">{{ birdData[activeTab].temp }}</p>
+              <span class="text-xs text-gray-500 mt-1 block">Constante durante todo el ciclo</span>
             </div>
-            <div class="info-box" style="display: flex; align-items: center; justify-content: center;">
-              <button @click="startCycle(activeTab)" class="btn-primary" style="width: 100%;">
+            <div class="flex items-center justify-center p-2">
+              <button @click="startCycle(activeTab)" class="bg-pi-blue-700 hover:bg-pi-blue-900 text-white font-medium py-3 px-6 rounded-lg transition-colors w-full shadow-sm">
                 Iniciar Ciclo de {{ birdData[activeTab].name }}
               </button>
             </div>
           </div>
           
           <template v-if="birdData[activeTab].schedule">
-            <h4 class="mt-4 mb-2">Registro de Incubación Diario</h4>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Día</th>
-                  <th>Temperatura (ºC)</th>
-                  <th>Humedad (Hr)</th>
-                  <th>Acción / Recomendación</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="day in birdData[activeTab].schedule" :key="day.day">
-                  <td><strong>Día {{ day.day }}</strong></td>
-                  <td class="text-temp">{{ day.temp }}</td>
-                  <td class="text-blue">{{ day.hum }}</td>
-                  <td>{{ day.action }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <h4 class="text-base font-semibold text-pi-gray-700 mb-4">Registro de Incubación Diario</h4>
+            <div class="overflow-x-auto border border-gray-100 rounded-xl">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th class="px-6 py-4 font-medium">Día</th>
+                    <th class="px-6 py-4 font-medium">Temperatura (ºC)</th>
+                    <th class="px-6 py-4 font-medium">Humedad (Hr)</th>
+                    <th class="px-6 py-4 font-medium">Acción / Recomendación</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="day in birdData[activeTab].schedule" :key="day.day" class="hover:bg-gray-50">
+                    <td class="px-6 py-3 font-semibold text-pi-gray-700">Día {{ day.day }}</td>
+                    <td class="px-6 py-3 font-medium text-orange-500">{{ day.temp }}</td>
+                    <td class="px-6 py-3 font-medium text-pi-sky-400">{{ day.hum }}</td>
+                    <td class="px-6 py-3 text-gray-600">{{ day.action }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </template>
           
           <template v-else>
-            <h4 class="mt-4 mb-2">Humedad Recomendada por Fases</h4>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fase de Incubación</th>
-                  <th>Días Correspondientes</th>
-                  <th>Humedad Recomendada</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Desarrollo inicial</td>
-                  <td><strong>Días {{ birdData[activeTab].days1 }}</strong></td>
-                  <td class="text-blue">{{ birdData[activeTab].hum1 }}</td>
-                </tr>
-                <tr>
-                  <td>Fase de Eclosión</td>
-                  <td><strong>Días {{ birdData[activeTab].days2 }}</strong></td>
-                  <td class="text-blue">{{ birdData[activeTab].hum2 }}</td>
-                </tr>
-              </tbody>
-            </table>
+            <h4 class="text-base font-semibold text-pi-gray-700 mb-4">Humedad Recomendada por Fases</h4>
+            <div class="overflow-x-auto border border-gray-100 rounded-xl">
+              <table class="w-full text-sm text-left">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th class="px-6 py-4 font-medium">Fase de Incubación</th>
+                    <th class="px-6 py-4 font-medium">Días Correspondientes</th>
+                    <th class="px-6 py-4 font-medium">Humedad Recomendada</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-pi-gray-700 font-medium">Desarrollo inicial</td>
+                    <td class="px-6 py-4 font-semibold text-gray-600">Días {{ birdData[activeTab].days1 }}</td>
+                    <td class="px-6 py-4 font-medium text-pi-sky-400">{{ birdData[activeTab].hum1 }}</td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-pi-gray-700 font-medium">Fase de Eclosión</td>
+                    <td class="px-6 py-4 font-semibold text-gray-600">Días {{ birdData[activeTab].days2 }}</td>
+                    <td class="px-6 py-4 font-medium text-pi-sky-400">{{ birdData[activeTab].hum2 }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </template>
         </div>
       </div>
 
-      <div class="card mt-4">
-        <div class="card-header">
-          <h3>Configuración de Alarmas (Incubadora)</h3>
+      <!-- Configuración de Alarmas Card -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-pi-blue-900 m-0">Configuración de Alarmas (Limites)</h3>
         </div>
-        <div class="form-container">
+        <div class="bg-pi-gray-100 p-6 rounded-xl border border-gray-200">
           <form @submit.prevent="updateSettings">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Temp. Mínima (°C)</label>
-                <input type="number" step="0.1" v-model="settings.temp_min" required />
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Temp. Mínima (°C)</label>
+                <input type="number" step="0.1" v-model="settings.temp_min" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Temp. Máxima (°C)</label>
-                <input type="number" step="0.1" v-model="settings.temp_max" required />
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Temp. Máxima (°C)</label>
+                <input type="number" step="0.1" v-model="settings.temp_max" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Humedad Mínima (%)</label>
-                <input type="number" step="0.1" v-model="settings.hum_min" required />
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Humedad Mínima (%)</label>
+                <input type="number" step="0.1" v-model="settings.hum_min" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
-              <div class="form-group">
-                <label>Humedad Máxima (%)</label>
-                <input type="number" step="0.1" v-model="settings.hum_max" required />
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold text-pi-gray-700">Humedad Máxima (%)</label>
+                <input type="number" step="0.1" v-model="settings.hum_max" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 focus:border-transparent transition-all" />
               </div>
             </div>
-            <div v-if="settingsMsg" class="success-msg mt-2">{{ settingsMsg }}</div>
-            <button type="submit" class="btn-primary mt-4">Guardar Rangos</button>
+            <div v-if="settingsMsg" class="mt-4 bg-green-50 text-green-700 text-sm px-4 py-3 rounded-lg border border-green-200 font-medium">{{ settingsMsg }}</div>
+            <div class="mt-6">
+              <button type="submit" class="bg-pi-blue-700 hover:bg-pi-blue-900 text-white border-none py-2.5 px-6 rounded-lg text-sm font-medium transition-colors shadow-sm">Guardar Rangos</button>
+            </div>
           </form>
         </div>
       </div>
     </main>
   </div>
 </template>
-
-<style scoped>
-.admin-container {
-  min-height: 100vh;
-  background-color: #0f172a;
-  color: #f8fafc;
-}
-
-.header {
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 2rem;
-}
-
-.header-content {
-  max-width: 1280px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-link {
-  color: #818cf8;
-  text-decoration: none;
-}
-
-.main-content {
-  max-width: 1280px;
-  margin: 2rem auto;
-  padding: 0 2rem;
-}
-
-.card {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  padding: 2rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.btn-primary {
-  background: #6366f1;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.form-container {
-  background: rgba(15, 23, 42, 0.5);
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-input, select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  color: white;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th, .data-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge.admin { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
-.badge.cliente { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-
-.mt-2 { margin-top: 0.5rem; }
-.mt-4 { margin-top: 2rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.error-msg { color: #ef4444; }
-.success-msg { color: #34d399; font-weight: 500; }
-.text-blue { color: #60a5fa; font-weight: 600; }
-
-.tabs { display: flex; gap: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
-.tab-btn { background: transparent; color: #94a3b8; border: none; padding: 0.75rem 1.5rem; cursor: pointer; border-radius: 0.5rem 0.5rem 0 0; font-weight: 500; transition: all 0.2s; white-space: nowrap; }
-.tab-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; }
-.tab-btn.active { background: rgba(99, 102, 241, 0.1); color: #818cf8; border-bottom: 2px solid #818cf8; }
-.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-.info-box { background: rgba(15, 23, 42, 0.5); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.05); }
-.info-box h4 { margin: 0 0 0.5rem 0; color: #cbd5e1; font-weight: 500; }
-.info-box .highlight { font-size: 1.5rem; font-weight: 700; color: #f8fafc; margin: 0; }
-.info-box .highlight.temp { color: #fb923c; }
-.info-box .subtext { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; display: block; }
-.ml-2 { margin-left: 0.5rem; }
-</style>
