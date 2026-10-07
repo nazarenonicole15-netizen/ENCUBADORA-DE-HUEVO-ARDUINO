@@ -80,6 +80,27 @@ app.delete('/api/users/:id', authMiddleware, adminMiddleware, async (req, res) =
   }
 });
 
+app.put('/api/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  const { nombre, email, password, role } = req.body;
+  try {
+    if (password && password.trim() !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db.execute(
+        'UPDATE users SET nombre = ?, email = ?, password = ?, role = ? WHERE id = ?',
+        [nombre, email, hashedPassword, role, req.params.id]
+      );
+    } else {
+      await db.execute(
+        'UPDATE users SET nombre = ?, email = ?, role = ? WHERE id = ?',
+        [nombre, email, role, req.params.id]
+      );
+    }
+    res.json({ message: 'Usuario actualizado' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error actualizando usuario' });
+  }
+});
+
 // --- SETTINGS ROUTES (Admin can update, any authenticated can read) ---
 app.get('/api/settings', authMiddleware, async (req, res) => {
   try {

@@ -9,6 +9,10 @@ const showForm = ref(false)
 const newUser = ref({ nombre: '', email: '', password: '', role: 'CLIENTE' })
 const errorMsg = ref('')
 
+const showEditModal = ref(false)
+const editingUser = ref({ id: null, nombre: '', email: '', password: '', role: 'CLIENTE' })
+const editMsg = ref('')
+
 const settings = ref({ temp_min: 0, temp_max: 0, hum_min: 0, hum_max: 0, start_date: null, bird_type: 'gallina' })
 const settingsMsg = ref('')
 const activeTab = ref('gallina')
@@ -83,6 +87,23 @@ const deleteUser = async (id) => {
     fetchUsers()
   } catch (err) {
     console.error('Error deleting user:', err)
+  }
+}
+
+const openEditModal = (user) => {
+  editingUser.value = { ...user, password: '' } // Copia del usuario, contraseña vacía por si no quiere cambiarla
+  editMsg.value = ''
+  showEditModal.value = true
+}
+
+const updateUser = async () => {
+  editMsg.value = ''
+  try {
+    await axios.put(`http://localhost:3001/api/users/${editingUser.value.id}`, editingUser.value, getAuthHeaders())
+    showEditModal.value = false
+    fetchUsers()
+  } catch (err) {
+    editMsg.value = err.response?.data?.error || 'Error al actualizar usuario'
   }
 }
 
@@ -207,11 +228,52 @@ onMounted(() => {
                   <span class="px-2.5 py-1 rounded-full text-xs font-semibold" :class="user.role === 'ADMIN' ? 'bg-pi-blue-100 text-pi-blue-700' : 'bg-green-100 text-green-700'">{{ user.role }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <button @click="openEditModal(user)" class="bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm mr-2">Editar</button>
                   <button @click="deleteUser(user.id)" :disabled="user.id === 1" class="bg-white border border-red-200 text-pi-danger hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">Eliminar</button>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Modal de Edición de Usuario -->
+      <div v-if="showEditModal" class="fixed inset-0 bg-pi-blue-900/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl border-t-4 border-blue-500">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-pi-gray-700 m-0">Editar Usuario</h2>
+            <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <form @submit.prevent="updateUser" class="flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-semibold text-pi-gray-700">Nombre</label>
+              <input v-model="editingUser.nombre" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 transition-all" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-semibold text-pi-gray-700">Email</label>
+              <input type="email" v-model="editingUser.email" required class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 transition-all" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-semibold text-pi-gray-700">Contraseña <span class="text-xs text-gray-400 font-normal">(Dejar en blanco para mantener actual)</span></label>
+              <input type="password" v-model="editingUser.password" class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 transition-all" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-semibold text-pi-gray-700">Rol</label>
+              <select v-model="editingUser.role" :disabled="editingUser.id === 1" class="bg-white border border-gray-300 px-4 py-2.5 rounded-lg text-pi-gray-700 focus:outline-none focus:ring-2 focus:ring-pi-sky-400 transition-all disabled:opacity-50">
+                <option value="CLIENTE">Cliente</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+            </div>
+            <div v-if="editMsg" class="bg-red-100 text-pi-danger text-sm px-4 py-3 rounded-lg border border-red-200">{{ editMsg }}</div>
+            <div class="flex gap-4 mt-2">
+              <button type="button" @click="showEditModal = false" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-6 rounded-lg transition-colors">Cancelar</button>
+              <button type="submit" class="flex-1 bg-pi-blue-700 hover:bg-pi-blue-900 text-white border-none py-2.5 px-6 rounded-lg font-medium transition-colors">Guardar Cambios</button>
+            </div>
+          </form>
         </div>
       </div>
 
