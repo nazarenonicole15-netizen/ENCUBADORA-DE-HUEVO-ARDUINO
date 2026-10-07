@@ -1,26 +1,105 @@
-# Plan de desarrollo por sprints
+# Plan de Desarrollo por Sprints — Incubadora ESP32
 
-Propuesta para sprints de dos semanas, ordenada por reducción de riesgo operativo y de seguridad. Las estimaciones se expresan en puntos relativos y se revisan al iniciar cada sprint.
+**Última actualización:** 6 de octubre de 2026
 
-| Sprint | Objetivo | Historias / trabajo | Entregables | Estimación |
-| --- | --- | --- | --- | --- |
-| 0 — Base segura | Hacer el proyecto instalable y seguro para continuar. | HU-08, README operativo, scripts `dev`, `start`, migraciones idempotentes, `.env.example`, rotación de claves. | Configuración por entorno, guía de arranque y control de secretos. | 13 pts |
-| 1 — Telemetría confiable | Detectar y comunicar datos inválidos, vencidos o fallos de sincronización. | HU-02, HU-03, HU-09; validación de `page/limit`, estado de worker, indicador de antigüedad, pruebas API. | Dashboard con estado de conexión y API probada. | 21 pts |
-| 2 — Ciclos y reglas | Convertir la guía de incubación en reglas consistentes y verificables. | HU-05, HU-06; validación de rangos, reglas por ave, alertas para especies soportadas, persistencia de eventos. | Ciclos confiables y alertas de fase documentadas. | 20 pts |
-| 3 — Operación y acceso | Completar administración y trazabilidad. | HU-01, HU-07; edición/desactivación de usuarios, protección contra eliminación propia, auditoría básica y expiración controlada. | Administración robusta y pruebas de autorización. | 18 pts |
-| 4 — Integración IoT | Versionar y validar el extremo de hardware. | HU-10; firmware, contrato de payload, autenticación de dispositivo, prueba de extremo a extremo. | Repositorio reproducible desde sensor a panel. | 21 pts |
+---
 
-## Ceremonias y calidad
+## Estado General
 
-- Planificación: definir capacidad y aceptar historias con criterios claros.
-- Seguimiento diario: revisar bloqueos de hardware, datos y despliegue.
-- Revisión: demostrar sobre datos de prueba y registrar decisiones.
-- Retrospectiva: ajustar estimaciones y riesgos.
-- Calidad mínima por sprint: `npm run build` en frontend, pruebas de rutas del backend, análisis de secretos y revisión de migraciones antes de integrar.
+```
+Sprint 0 — Base segura          🔲 Parcialmente completo
+Sprint 1 — Telemetría confiable ✅ Completado
+Sprint 2 — Ciclos y reglas      ✅ Completado
+Sprint 3 — Operación y acceso   ✅ Completado
+Sprint 4 — Integración IoT      ✅ Completado
+Sprint 5 — Seguridad y prod.    🔲 Próxima iteración
+```
+
+---
+
+## Sprints Completados
+
+### ✅ Sprint 1 — Telemetría Confiable
+**Objetivo:** Dashboard en tiempo real con estado de conexión del ESP32.
+
+| Historia | Entregable | Estado |
+|----------|-----------|--------|
+| HU-02 | Temperatura y humedad en vivo con badge Normal/Crítico | ✅ |
+| HU-03 | Alertas visual y sonora; botón silenciar | ✅ |
+| HU-09 | Indicador 🟢/🔴 de conexión del ESP32 en Navbar | ✅ |
+| — | Sincronización ThingSpeak → MySQL cada 60s | ✅ |
+| — | Historial paginado y gráficas Chart.js | ✅ |
+
+---
+
+### ✅ Sprint 2 — Ciclos y Reglas de Incubación
+**Objetivo:** Ciclos de incubación funcionales con guías por tipo de ave.
+
+| Historia | Entregable | Estado |
+|----------|-----------|--------|
+| HU-05 | Configuración de umbrales temp/hum para Admin | ✅ |
+| HU-06 | Iniciar/Detener ciclo; contador de días en Dashboard | ✅ |
+| — | Guías de incubación: Gallina, Codorniz, Ganso, Pavo, Pato | ✅ |
+| — | Alerta multimedia para días críticos de gallina (días 18–21) | ✅ |
+
+---
+
+### ✅ Sprint 3 — Gestión de Usuarios
+**Objetivo:** CRUD completo de usuarios con edición en modal.
+
+| Historia | Entregable | Estado |
+|----------|-----------|--------|
+| HU-01 | Login JWT con guardias de Vue Router por rol | ✅ |
+| HU-07 | Crear, listar, **editar** (modal) y eliminar usuarios | ✅ |
+| — | Endpoint `PUT /api/users/:id` en backend | ✅ |
+| — | Protección del usuario administrador inicial (ID=1) | ✅ |
+
+---
+
+### ✅ Sprint 4 — Firmware ESP32
+**Objetivo:** Versionar y documentar el firmware del dispositivo IoT.
+
+| Historia | Entregable | Estado |
+|----------|-----------|--------|
+| HU-10 | `codigoesp32.ino` con WiFiManager + DHT11 + ThingSpeak | ✅ |
+| — | LEDs indicadores de estado (GPIO 25 y 26) | ✅ |
+| — | Reconexión automática al Wi-Fi con WiFiManager fallback | ✅ |
+| — | Documentación de firmware en `guia.md` | ✅ |
+
+---
+
+### ✅ Diseño UI/UX (Transversal)
+**Objetivo:** Interfaz institucional moderna y responsive.
+
+| Entregable | Estado |
+|-----------|--------|
+| Paleta institucional azul-celeste con Tailwind CSS | ✅ |
+| `Login.vue` — formulario centrado con validación visual | ✅ |
+| `Dashboard.vue` — navbar, cards, gráficas, tabla paginada | ✅ |
+| `AdminUsers.vue` — tabla de usuarios, modal edición, guías de ave | ✅ |
+
+---
+
+## Sprint Pendiente
+
+### 🔲 Sprint 5 — Seguridad y Producción
+**Objetivo:** Hacer el sistema apto para despliegue en producción.
+
+| Historia | Trabajo | Estimación |
+|----------|---------|-----------|
+| HU-08 | Mover JWT, MySQL y ThingSpeak a `.env`; crear `.env.example` | 5 pts |
+| — | Restringir CORS a dominio específico | 2 pts |
+| — | Centralizar URL de API en `VITE_API_URL` | 2 pts |
+| — | Añadir pruebas automatizadas para rutas de Auth y Lecturas | 8 pts |
+| HU-11 | Notificaciones remotas (email) cuando valores salen de rango | 8 pts |
+| HU-12 | Tabla de auditoría de cambios de usuarios | 5 pts |
+
+**Estimación total:** ~30 puntos
+
+---
 
 ## Dependencias
 
-- Acceso a una instancia MySQL de prueba.
-- Propiedad y rotación del canal/clave de ThingSpeak.
-- Hardware ESP32/Arduino, sensores y firmware para el Sprint 4.
-- Decisión de despliegue (red local, servidor o nube) para dejar de depender de `localhost`.
+- Acceso a servidor de producción (Linux + Nginx + PM2) para despliegue real.
+- Decisión de dominio o IP pública para dejar de usar `localhost`.
+- Canal ThingSpeak activo con el ESP32 enviando datos regularmente.

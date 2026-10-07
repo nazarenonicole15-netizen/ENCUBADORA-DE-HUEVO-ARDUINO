@@ -1,40 +1,85 @@
-# Arquitectura técnica
+# Arquitectura Técnica — Incubadora ESP32
 
-## Propósito y alcance actual
+**Última actualización:** 6 de octubre de 2026
 
-El sistema permite a usuarios autenticados consultar temperatura y humedad de una incubadora, revisar su historial y recibir alertas visuales/sonoras. Un administrador también administra usuarios, configura límites y controla el inicio o detención de un ciclo de incubación.
+## Propósito y Alcance
 
-El origen de telemetría configurado es un canal de ThingSpeak. No existe en el repositorio código de Arduino/ESP32, sensores, actuadores ni control físico de calefacción, humedad o volteo.
+El sistema permite a usuarios autenticados consultar en tiempo real la temperatura y humedad de una incubadora, revisar el historial con gráficas, recibir alertas visuales y sonoras, y consultar guías de incubación por tipo de ave. Un administrador gestiona usuarios, configura umbrales de alarma y controla el ciclo de incubación.
 
-## Componentes
+El origen de telemetría es un **ESP32 con sensor DHT11** que publica lecturas en **ThingSpeak** cada 20 segundos. El firmware (`codigoesp32.ino`) está versionado en la raíz del repositorio.
+
+---
+
+## Diagrama de Componentes
 
 ```mermaid
 flowchart LR
-  U[Usuario / Administrador] --> FE[SPA Vue 3 + Vite]
-  FE -->|HTTP JSON + Bearer JWT| API[API Express :3001]
-  API -->|SQL| DB[(MySQL: encubadora_db)]
-  TS[ThingSpeak] -->|feeds.json, cada 60 s| API
-  ESP[ESP32/Arduino y sensores] -. publica mediciones; fuera de este repositorio .-> TS
-  FE -->|alarmas y gráfica| B[Audio / Chart.js / localStorage]
+  ESP["ESP32 + DHT11 (GPIO 27)\nLEDs: Verde OK / Rojo Error\nWiFiManager"] -->|HTTPS cada 20s| TS["ThingSpeak\nCanal 3442278\nfield1=Temp, field2=Hum"]
+  TS -->|feeds.json cada 60s| API["API Express\nlocalhost:3001\nWorker + REST"]
+  API -->|SQL| DB[("MySQL\nencubadora_db")]
+  FE["Vue 3 SPA\nlocalhost:8080"] -->|HTTP + Bearer JWT| API
+  U["👤 Usuario / Administrador"] --> FE
+  FE -->|Alertas + Gráficas| B["Audio / Chart.js\nlocalStorage"]
 ```
 
+---
+
+## Capas del Sistema
+
 | Capa | Tecnología | Responsabilidad |
-| --- | --- | --- |
-| Interfaz | Vue 3, Vue Router, Axios, Chart.js | Inicio de sesión, dashboard, gráficas, alertas y administración. |
-| API | Node.js, Express, CORS | Autenticación, autorización por rol, CRUD de usuarios, parámetros y lecturas. |
-| Ingesta | Axios + tarea `setInterval` | Consulta la última lectura de ThingSpeak al iniciar y cada minuto. |
-| Datos | MySQL con `mysql2/promise` | Conserva usuarios, configuración global y lecturas históricas. |
-| Integración externa | ThingSpeak | Expone la última temperatura (`field1`) y humedad (`field2`). |
+|------|-----------|----------------|
+| **Hardware / Firmware** | ESP32, DHT11, WiFiManager, ThingSpeak lib | Lectura de sensor, conexión Wi-Fi y publicación de telemetría |
+| **Integración externa** | ThingSpeak (Canal 3442278) | Recibe y expone temperatura (`field1`) y humedad (`field2`) |
+| **Ingesta (Worker)** | Node.js `setInterval` + Axios | Consulta ThingSpeak cada 60s e inserta lecturas nuevas en MySQL |
+| **API REST** | Express, jsonwebtoken, bcrypt | Autenticación, autorización por rol, CRUD usuarios, settings, lecturas |
+| **Base de datos** | MySQL con `mysql2/promise` | Persiste usuarios, configuración global y lecturas históricas |
+| **Interfaz web** | Vue 3, Vue Router, Axios, Chart.js, Tailwind CSS | Dashboard en tiempo real, alertas, gestión de usuarios y ciclos |
 
-## Flujo de telemetría
+---
 
-1. Un dispositivo externo publica valores en ThingSpeak (integración no incluida).
-2. `backend/index.js` llama al endpoint `feeds.json` con `results=1` cada 60 segundos.
-3. Si existen `field1` y `field2`, la API los convierte a números y almacena la lectura en `readings`.
-4. La restricción única sobre `readings.timestamp` evita repetir una misma muestra.
-5. El dashboard solicita la última lectura y el historial paginado cada minuto; determina localmente si está fuera de los límites guardados en `settings`.
+## Flujo de Telemetría
 
-## Modelo de datos
+```mermaid
+sequenceDiagram
+  participant ESP as ESP32 + DHT11
+  participant TS as ThingSpeak
+  participant W as Worker (Node.js)
+  participant DB as MySQL
+  participant FE as Frontend Vue
+
+  loop cada 20 segundos
+    ESP->>TS: HTTP GET (temp + hum)
+    TS-->>ESP: HTTP 200 OK
+  end
+
+  loop cada 60 segundos
+    W->>TS: GET feeds.json?results=1
+    TS-->>W: field1, field2, created_at
+    W->>DB: INSERT IGNORE INTO readings
+    DB-->>W: insertado o duplicado ignorado
+  end
+
+  FE->>W: GET /api/readings/latest (JWT)
+  W->>DB: SELECT última lectura
+  DB-->>W: temperatura, humedad, timestamp
+  W-->>FE: JSON con datos
+  FE->>FE: Evalúa límites → alerta si fuera de rango
+```
+
+---
+
+## Indicador de Estado del ESP32
+
+El frontend calcula automáticamente si el ESP32 está activo:
+
+- **🟢 En Línea:** la última lectura fue hace **≤ 3 minutos**.
+- **🔴 Desconectado:** la última lectura fue hace **> 3 minutos**.
+
+El indicador aparece en la barra de navegación del Dashboard con animación de pulso cuando está activo.
+
+---
+
+## Modelo de Datos
 
 ```mermaid
 erDiagram
@@ -43,7 +88,7 @@ erDiagram
     varchar nombre
     varchar email UK
     varchar password
-    enum role
+    enum role "ADMIN|CLIENTE"
     timestamp created_at
   }
   SETTINGS {
@@ -52,8 +97,8 @@ erDiagram
     decimal temp_max
     decimal hum_min
     decimal hum_max
-    datetime start_date
-    varchar bird_type
+    datetime start_date "NULL si no hay ciclo"
+    varchar bird_type "gallina|codorniz|ganso|pavo|pato"
   }
   READINGS {
     int id PK
@@ -64,34 +109,56 @@ erDiagram
   }
 ```
 
-`settings` usa una única fila (`id = 1`), por lo que la configuración y el ciclo son globales: no se relacionan con una incubadora, usuario o lote específico.
+> `settings` usa una única fila (`id = 1`). El ciclo y la configuración son globales para toda la aplicación.
 
-## API disponible
+---
 
-| Método y ruta | Autorización | Función |
-| --- | --- | --- |
-| `POST /api/login` | Pública | Valida credenciales y emite JWT de 24 horas. |
-| `GET /api/users` | ADMIN | Lista usuarios. |
-| `POST /api/users` | ADMIN | Crea un usuario y cifra la contraseña con bcrypt. |
-| `DELETE /api/users/:id` | ADMIN | Elimina un usuario. |
-| `GET /api/settings` | Autenticado | Obtiene rangos y ciclo global. |
-| `POST /api/settings` | ADMIN | Actualiza límites de temperatura y humedad. |
-| `POST /api/settings/start` | ADMIN | Inicia ciclo y define tipo de ave. |
-| `POST /api/settings/stop` | ADMIN | Finaliza el ciclo activo. |
-| `GET /api/readings` | Autenticado | Lista lecturas paginadas (`page`, `limit`). |
-| `GET /api/readings/latest` | Autenticado | Recupera la lectura más reciente. |
+## API REST Completa
 
-## Despliegue y configuración actual
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `POST` | `/api/login` | ❌ Pública | Valida credenciales → emite JWT 24h |
+| `GET` | `/api/users` | ADMIN | Lista todos los usuarios |
+| `POST` | `/api/users` | ADMIN | Crea usuario con contraseña hasheada (bcrypt) |
+| `PUT` | `/api/users/:id` | ADMIN | **Edita** nombre, email, rol y contraseña opcional |
+| `DELETE` | `/api/users/:id` | ADMIN | Elimina usuario |
+| `GET` | `/api/settings` | Autenticado | Obtiene umbrales de alarma y estado del ciclo |
+| `POST` | `/api/settings` | ADMIN | Actualiza umbrales de temperatura y humedad |
+| `POST` | `/api/settings/start` | ADMIN | Inicia ciclo → guarda `start_date` y `bird_type` |
+| `POST` | `/api/settings/stop` | ADMIN | Finaliza ciclo → `start_date = NULL` |
+| `GET` | `/api/readings` | Autenticado | Lista lecturas paginadas (`?page=1&limit=20`) |
+| `GET` | `/api/readings/latest` | Autenticado | Retorna la lectura más reciente |
 
-- Frontend: `npm run dev` / `npm run build` desde la raíz.
-- Backend: no tiene script `start`; se ejecuta con `node backend/index.js` tras instalar dependencias en `backend/`.
-- Base de datos: ejecutar `init.sql`, `settings.sql` y luego `alter.sql` sobre MySQL.
-- Frontend y backend están acoplados a `http://localhost:3001`.
-- La conexión MySQL está fijada a `localhost`, usuario `root`, contraseña vacía y base `encubadora_db`.
+---
 
-## Restricciones y decisiones para la siguiente iteración
+## Despliegue Local
 
-1. Mover secretos, credenciales de MySQL y configuración de ThingSpeak a variables de entorno; rotar las claves actualmente expuestas.
-2. Centralizar la URL de API en una variable `VITE_API_URL`.
-3. Modelar incubadoras, lotes y ciclos como entidades independientes antes de soportar más de un equipo.
-4. Incorporar firmware versionado, contrato de telemetría y autenticación de dispositivo si el alcance incluye el hardware.
+| Servicio | Comando | Puerto |
+|---------|---------|--------|
+| MySQL (XAMPP) | XAMPP Control Panel → Start MySQL | 3306 |
+| Backend API | `node backend/index.js` | 3001 |
+| Frontend | `npm run dev` (raíz) | 8080 |
+| Inicio automático | `iniciar_sistema.bat` | — |
+
+---
+
+## Firmware ESP32
+
+| Parámetro | Valor |
+|-----------|-------|
+| Archivo | `codigoesp32.ino` |
+| Sensor | DHT11 en **GPIO 27** |
+| LED Verde | GPIO 26 (envío exitoso) |
+| LED Rojo | GPIO 25 (lectura / error) |
+| Gestión Wi-Fi | WiFiManager (AP: `ESP32-DHT11`, clave: `12345678`) |
+| Canal ThingSpeak | `3442278` |
+| Frecuencia de envío | Cada **20 segundos** |
+
+---
+
+## Decisiones Técnicas Pendientes
+
+1. **Variables de entorno:** mover JWT secret, claves ThingSpeak y credenciales MySQL a `.env`.
+2. **CORS:** restringir a `http://localhost:8080` (o dominio de producción).
+3. **URL de API:** centralizar en variable `VITE_API_URL` en el frontend.
+4. **Escalabilidad:** modelar entidades `Incubadora` y `Ciclo` para soportar más de una unidad.
