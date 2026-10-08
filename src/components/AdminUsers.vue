@@ -1,6 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useToast } from '../composables/useToast'
+import { useConfirm } from '../composables/useConfirm'
+
+const { showToast } = useToast()
+const { showConfirm } = useConfirm()
 
 const users = ref([])
 const loading = ref(true)
@@ -75,18 +80,28 @@ const createUser = async () => {
     showForm.value = false
     newUser.value = { nombre: '', email: '', password: '', role: 'CLIENTE' }
     fetchUsers()
+    showToast('Usuario creado exitosamente', 'success')
   } catch (err) {
     errorMsg.value = err.response?.data?.error || 'Error al crear usuario'
+    showToast(errorMsg.value, 'error')
   }
 }
 
 const deleteUser = async (id) => {
-  if (!confirm('¿Estás seguro de eliminar este usuario?')) return
+  const confirmed = await showConfirm('Esta acción no se puede deshacer. El usuario será eliminado permanentemente.', {
+    title: '¿Eliminar usuario?',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'Cancelar',
+    type: 'danger'
+  })
+  if (!confirmed) return
   try {
     await axios.delete(`http://localhost:3001/api/users/${id}`, getAuthHeaders())
     fetchUsers()
+    showToast('Usuario eliminado correctamente', 'success')
   } catch (err) {
     console.error('Error deleting user:', err)
+    showToast('Error al eliminar el usuario', 'error')
   }
 }
 
@@ -102,8 +117,10 @@ const updateUser = async () => {
     await axios.put(`http://localhost:3001/api/users/${editingUser.value.id}`, editingUser.value, getAuthHeaders())
     showEditModal.value = false
     fetchUsers()
+    showToast('Usuario actualizado correctamente', 'success')
   } catch (err) {
     editMsg.value = err.response?.data?.error || 'Error al actualizar usuario'
+    showToast(editMsg.value, 'error')
   }
 }
 
@@ -128,24 +145,39 @@ const updateSettings = async () => {
 }
 
 const startCycle = async (type) => {
-  if (!confirm(`¿Iniciar nuevo ciclo de incubación para: ${type}?`)) return
+  const bird = birdData[type]?.name || type
+  const confirmed = await showConfirm(`Se iniciará un nuevo ciclo de incubación para: ${bird}. El ciclo anterior será reemplazado.`, {
+    title: '¿Iniciar nuevo ciclo?',
+    confirmText: `Iniciar ciclo`,
+    cancelText: 'Cancelar',
+    type: 'info'
+  })
+  if (!confirmed) return
   try {
     await axios.post('http://localhost:3001/api/settings/start', { bird_type: type }, getAuthHeaders())
     fetchSettings()
-    alert('Ciclo iniciado exitosamente')
+    showToast(`¡Ciclo de ${bird} iniciado exitosamente! 🐣`, 'success', 5000)
   } catch (err) {
     console.error(err)
+    showToast('Error al iniciar el ciclo', 'error')
   }
 }
 
 const stopCycle = async () => {
-  if (!confirm('¿Detener el ciclo actual?')) return
+  const confirmed = await showConfirm('El progreso del ciclo actual se perderá. Esta acción no se puede deshacer.', {
+    title: '¿Detener ciclo activo?',
+    confirmText: 'Sí, detener',
+    cancelText: 'Cancelar',
+    type: 'danger'
+  })
+  if (!confirmed) return
   try {
     await axios.post('http://localhost:3001/api/settings/stop', {}, getAuthHeaders())
     fetchSettings()
-    alert('Ciclo detenido')
+    showToast('Ciclo detenido correctamente', 'warning')
   } catch (err) {
     console.error(err)
+    showToast('Error al detener el ciclo', 'error')
   }
 }
 

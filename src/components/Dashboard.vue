@@ -29,6 +29,27 @@ ChartJS.register(
 const router = useRouter()
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
 
+// ── Zona horaria de Ecuador (Guayaquil / Quito = UTC-5) ──────────────────────
+const TZ = 'America/Guayaquil'
+
+/**
+ * Convierte un timestamp UTC del servidor a fecha/hora en zona horaria de Ecuador.
+ * @param {string|Date} ts  - timestamp ISO o Date object
+ * @param {boolean} shortTime - si true, devuelve solo HH:MM (para gráficas)
+ */
+const toEcuadorTime = (ts, shortTime = false) => {
+  const d = new Date(ts)
+  if (shortTime) {
+    return d.toLocaleTimeString('es-EC', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false })
+  }
+  return d.toLocaleString('es-EC', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  })
+}
+
 // Helper to get fresh token/headers on every API call (prevents stale token issues)
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -165,7 +186,7 @@ const fetchLatest = async () => {
       latestData.value = {
         temp: parseFloat(res.data.temperatura).toFixed(1),
         hum: parseFloat(res.data.humedad).toFixed(1),
-        date: new Date(res.data.timestamp).toLocaleString(),
+        date: toEcuadorTime(res.data.timestamp),
         rawTimestamp: res.data.timestamp
       }
     }
@@ -193,10 +214,7 @@ const fetchHistory = async (page = 1) => {
 
     // Actualizar gráficas (invertimos para que el más viejo esté a la izquierda)
     const reversed = [...res.data.data].reverse()
-    const labels = reversed.map(r => {
-      const d = new Date(r.timestamp)
-      return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`
-    })
+    const labels = reversed.map(r => toEcuadorTime(r.timestamp, true))
     
     tempChartData.value = {
       labels,
@@ -361,7 +379,7 @@ onMounted(() => {
             </thead>
             <tbody class="divide-y divide-gray-50">
               <tr v-for="row in historyData" :key="row.id" class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap text-pi-gray-700">{{ new Date(row.timestamp).toLocaleString() }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-pi-gray-700">{{ toEcuadorTime(row.timestamp) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap font-medium" :class="row.temperatura < settings.temp_min || row.temperatura > settings.temp_max ? 'text-pi-danger' : 'text-pi-blue-700'">{{ row.temperatura }}</td>
                 <td class="px-6 py-4 whitespace-nowrap font-medium" :class="row.humedad < settings.hum_min || row.humedad > settings.hum_max ? 'text-pi-danger' : 'text-pi-blue-700'">{{ row.humedad }}</td>
               </tr>
